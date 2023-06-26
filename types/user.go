@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"regexp"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -22,6 +23,11 @@ type CreateUserParams struct {
 	Password  string `json:"password"`
 }
 
+type UpdateUserParams struct {
+	FirstName string `json:"firstName"`
+	LastName  string `json:"LastName"`
+}
+
 type User struct {
 	ID                primitive.ObjectID `bson:"_id,omitempty" json:"id,omitempty"`
 	FirstName         string             `bson:"firstName" json:"firstName"`
@@ -30,19 +36,30 @@ type User struct {
 	EncryptedPassword string             `bson:"EncryptedPassword" json:"-"`
 }
 
-func (params CreateUserParams) Validate() []string {
-	errors := []string{}
+func (p UpdateUserParams) ToBSON() bson.M {
+	m := bson.M{}
+	if len(p.FirstName) > 0 {
+		m["firstName"] = p.FirstName
+	}
+	if len(p.LastName) > 0 {
+		m["lastName"] = p.LastName
+	}
+	return m
+}
+
+func (params CreateUserParams) Validate() map[string]string {
+	errors := map[string]string{}
 	if len(params.FirstName) < minFirstNameLength {
-		errors = append(errors, fmt.Sprintf("firstName length should be at least %d characters", minFirstNameLength))
+		errors["firstName"] = fmt.Sprintf("firstName length should be at least %d characters", minFirstNameLength)
 	}
 	if len(params.LastName) < minLastNameLength {
-		errors = append(errors, fmt.Sprintf("lastName length should be at least %d characters", minLastNameLength))
+		errors["lastName"] = fmt.Sprintf("lastName length should be at least %d characters", minLastNameLength)
 	}
 	if len(params.Password) < minPasswordLength {
-		errors = append(errors, fmt.Sprintf("password length should be at least %d characters", minPasswordLength))
+		errors["password"] = fmt.Sprintf("password length should be at least %d characters", minPasswordLength)
 	}
 	if !isEmailValid(params.Email) {
-		errors = append(errors, "email is invalid")
+		errors["email"] = "email is invalid"
 	}
 
 	return errors
